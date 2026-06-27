@@ -60,22 +60,38 @@ Windows Task Scheduler / Linux Cron
         ↓
 Run Python CLI
         ↓
-Load config
+Load config (YAML + validate)
         ↓
 Capture screen / region
         ↓
-Save screenshot
+Save screenshot (Audit)
         ↓
-OCR image to text
+OCR image → text
         ↓
-Evaluate rules
+Save OCR text (Audit)
         ↓
-Rule matched?
-   ├─ Yes → Send email to owner
-   └─ No  → Write log only
+Rule Engine: evaluate rules
         ↓
-Save execution result
+Rule matched? ──No──→ Log "no match" → End
+        │Yes
+        ↓
+State Store: check cooldown ──In cooldown──→ Log "skipped" → End
+        │OK
+        ↓
+Resolve owner emails ──No owner──→ Log "no owner" → End
+        │OK
+        ↓
+Email Service: send email (SMTP)
+        ↓
+Send success? ──No──→ Log error (state KHÔNG update, lần sau retry) → End
+        │Yes
+        ↓
+State Store: mark_sent (ghi cooldown timestamp)
+        ↓
+Log "email sent" → End
 ```
+
+**Lưu ý quan trọng:** State Store được **đọc trước** (check cooldown) và chỉ **ghi sau** khi email gửi thành công. Nếu SMTP lỗi, state không cập nhật → lần chạy tiếp theo sẽ tự động retry gửi email cho rule đó.
 
 ---
 
